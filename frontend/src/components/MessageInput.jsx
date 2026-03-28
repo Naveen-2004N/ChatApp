@@ -28,7 +28,7 @@ function MessageInput() {
   };
 
   const handleImageChange = (e) => {
-    const file = e.target.files;
+    const file = e.target.files[0];
     if (!file.type.startsWith("image/")) {
       toast.error("Please select an image file");
       return;
@@ -73,9 +73,9 @@ function MessageInput() {
             setText(e.target.value);
             isSoundEnabled && playRandomKeyStrokeSound();
           }}
-          // Added text-slate-200 to ensure the typed text is visible
           className="flex-1 bg-slate-800/50 border border-slate-700/50 rounded-lg py-2 px-4 text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-cyan-500"
           placeholder="Type your message..."
+          
         />
 
         <input
