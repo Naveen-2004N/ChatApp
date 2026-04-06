@@ -12,24 +12,36 @@ function ChatPage() {
   const { activeTab, selectedUser } = useChatStore();
 
   return (
-    <div className="relative w-full max-w-6xl h-[800px]">
-      <BorderAnimatedContainer>
-        {/* LEFT SIDE */}
-        <div className="w-80 bg-slate-800/50 backdrop-blur-sm flex flex-col">
-          <ProfileHeader />
-          <ActiveTabSwitch />
+    <div className="w-full h-screen p-2 md:p-4">
+      <div className="w-full h-full max-w-6xl mx-auto">
+        <BorderAnimatedContainer className="h-full flex overflow-hidden rounded-xl">
 
-          <div className="flex-1 overflow-y-auto p-4 space-y-2">
-            {activeTab === "chats" ? <ChatsList /> : <ContactList />}
+          {/* LEFT SIDE (Sidebar) */}
+          <div
+            className={`${
+              selectedUser ? "hidden md:flex" : "flex"
+            } w-full md:w-80 bg-slate-800/50 backdrop-blur-sm flex-col`}
+          >
+            <ProfileHeader />
+            <ActiveTabSwitch />
+
+            <div className="flex-1 overflow-y-auto p-3 md:p-4 space-y-2">
+              {activeTab === "chats" ? <ChatsList /> : <ContactList />}
+            </div>
           </div>
-        </div>
 
-        {/* RIGHT SIDE */}
-        <div className="flex-1 flex flex-col bg-slate-900/50 backdrop-blur-sm">
-          {selectedUser ? <ChatContainer /> : <NoConversationPlaceholder />}
-        </div>
-      </BorderAnimatedContainer>
+          {/* RIGHT SIDE (Chat Area) */}
+          <div
+            className={`${
+              selectedUser ? "flex" : "hidden md:flex"
+            } flex-1 flex flex-col bg-slate-900/50 backdrop-blur-sm`}
+          >
+            {selectedUser ? <ChatContainer /> : <NoConversationPlaceholder />}
+          </div>
+        </BorderAnimatedContainer>
+      </div>
     </div>
   );
 }
+
 export default ChatPage;
