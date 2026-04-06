@@ -3,7 +3,10 @@ import { axiosInstance } from "../lib/axios";
 import toast from "react-hot-toast";
 import { io } from "socket.io-client";
 
-const BASE_URL = import.meta.env.VITE_MODE === "development" ? "http://localhost:3000" : import.meta.env.VITE_API_URL;
+const BASE_URL =
+  import.meta.env.VITE_MODE === "development"
+    ? "http://localhost:3000"
+    : import.meta.env.VITE_API_URL;
 
 export const useAuthStore = create((set, get) => ({
   authUser: null,
@@ -35,7 +38,7 @@ export const useAuthStore = create((set, get) => ({
       toast.success("Account created successfully!");
       get().connectSocket();
     } catch (error) {
-      toast.error(error.response.data.message);
+      toast.error(error.response?.data?.message);
     } finally {
       set({ isSigningUp: false });
     }
@@ -48,10 +51,9 @@ export const useAuthStore = create((set, get) => ({
       set({ authUser: res.data });
 
       toast.success("Logged in successfully");
-
       get().connectSocket();
     } catch (error) {
-      toast.error(error.response.data.message);
+      toast.error(error.response?.data?.message);
     } finally {
       set({ isLoggingIn: false });
     }
@@ -64,8 +66,7 @@ export const useAuthStore = create((set, get) => ({
       toast.success("Logged out successfully");
       get().disconnectSocket();
     } catch (error) {
-      toast.error("Error logging out");
-      console.log("Logout error:", error);
+      toast.error("Error logging out",error);
     }
   },
 
@@ -75,30 +76,44 @@ export const useAuthStore = create((set, get) => ({
       set({ authUser: res.data });
       toast.success("Profile updated successfully");
     } catch (error) {
-      console.log("Error in update profile:", error);
-      toast.error(error.response.data.message);
+      toast.error(error.response?.data?.message);
     }
   },
 
+  // ✅ FIXED SOCKET CONNECTION
   connectSocket: () => {
     const { authUser } = get();
+
     if (!authUser || get().socket?.connected) return;
 
     const socket = io(BASE_URL, {
-      withCredentials: true, // this ensures cookies are sent with the connection
+      query: {
+        userId: authUser._id, // ✅ IMPORTANT
+      },
+      withCredentials: true,
+      transports: ["websocket"], // ✅ fixes connection issue
     });
 
     socket.connect();
 
-    set({ socket });
+    socket.on("connect", () => {
+      console.log("✅ Socket connected");
+    });
 
-    // listen for online users event
+    socket.on("connect_error", (err) => {
+      console.log("❌ Socket error:", err.message);
+    });
+
     socket.on("getOnlineUsers", (userIds) => {
       set({ onlineUsers: userIds });
     });
+
+    set({ socket });
   },
 
   disconnectSocket: () => {
-    if (get().socket?.connected) get().socket.disconnect();
+    if (get().socket?.connected) {
+      get().socket.disconnect();
+    }
   },
 }));

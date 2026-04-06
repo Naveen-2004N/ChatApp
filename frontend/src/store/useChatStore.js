@@ -13,6 +13,27 @@ export const useChatStore = create((set, get) => ({
   isMessagesLoading: false,
   isSoundEnabled: JSON.parse(localStorage.getItem("isSoundEnabled")) === true,
 
+  // ✅ NEW STATES
+  typingUsers: {},
+  lastSeen: {},
+
+  // ✅ NEW FUNCTIONS
+  setTyping: (userId, isTyping) =>
+    set((state) => ({
+      typingUsers: {
+        ...state.typingUsers,
+        [userId]: isTyping,
+      },
+    })),
+
+  setLastSeen: (userId, time) =>
+    set((state) => ({
+      lastSeen: {
+        ...state.lastSeen,
+        [userId]: time,
+      },
+    })),
+
   toggleSound: () => {
     localStorage.setItem("isSoundEnabled", !get().isSoundEnabled);
     set({ isSoundEnabled: !get().isSoundEnabled });
@@ -78,10 +99,9 @@ export const useChatStore = create((set, get) => ({
 
     try {
       const res = await axiosInstance.post(`/messages/send/${selectedUser._id}`, messageData);
-      // Remove optimistic and add real message
       set({ messages: [...messages, res.data] });
     } catch (error) {
-      set({ messages: messages }); // Rollback
+      set({ messages: messages });
       toast.error(error.response?.data?.message || "Failed to send message");
     }
   },
@@ -93,6 +113,7 @@ export const useChatStore = create((set, get) => ({
     const socket = useAuthStore.getState().socket;
     if (!socket) return;
 
+    // MESSAGE
     socket.on("newMessage", (newMessage) => {
       const isMessageFromSelected = newMessage.senderId === selectedUser._id;
       if (!isMessageFromSelected) return;
@@ -102,13 +123,32 @@ export const useChatStore = create((set, get) => ({
       if (isSoundEnabled) {
         const notificationSound = new Audio("/sounds/notification.mp3");
         notificationSound.currentTime = 0;
-        notificationSound.play().catch((e) => console.log("Audio play failed:", e));
+        notificationSound.play().catch(() => {});
       }
+    });
+
+    // ✅ TYPING
+    socket.on("typing", ({ senderId }) => {
+      get().setTyping(senderId, true);
+    });
+
+    socket.on("stopTyping", ({ senderId }) => {
+      get().setTyping(senderId, false);
+    });
+
+    // ✅ LAST SEEN
+    socket.on("lastSeen", ({ userId, time }) => {
+      get().setLastSeen(userId, time);
     });
   },
 
   unsubscribeFromMessages: () => {
     const socket = useAuthStore.getState().socket;
-    if (socket) socket.off("newMessage");
+    if (!socket) return;
+
+    socket.off("newMessage");
+    socket.off("typing");
+    socket.off("stopTyping");
+    socket.off("lastSeen");
   },
 }));
