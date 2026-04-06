@@ -1,20 +1,39 @@
 import { useRef, useState } from "react";
 import useKeyboardSound from "../hooks/useKeyboardSound";
 import { useChatStore } from "../store/useChatStore";
+import { useAuthStore } from "../store/useAuthStore";
 import toast from "react-hot-toast";
 import { ImageIcon, SendIcon, XIcon } from "lucide-react";
 
 function MessageInput() {
   const { playRandomKeyStrokeSound } = useKeyboardSound();
+
   const [text, setText] = useState("");
   const [imagePreview, setImagePreview] = useState(null);
 
   const fileInputRef = useRef(null);
 
-  const { sendMessage, isSoundEnabled } = useChatStore();
+  const { sendMessage, isSoundEnabled, selectedUser } = useChatStore();
+  const socket = useAuthStore((state) => state.socket);
 
+  let typingTimeout;
+
+  // ✅ TYPING FUNCTION
+  const handleTyping = () => {
+    if (!socket || !selectedUser) return;
+
+    socket.emit("typing", { receiverId: selectedUser._id });
+
+    clearTimeout(typingTimeout);
+    typingTimeout = setTimeout(() => {
+      socket.emit("stopTyping", { receiverId: selectedUser._id });
+    }, 1500);
+  };
+
+  // ✅ SEND MESSAGE
   const handleSendMessage = (e) => {
     e.preventDefault();
+
     if (!text.trim() && !imagePreview) return;
 
     if (isSoundEnabled) playRandomKeyStrokeSound();
@@ -28,8 +47,14 @@ function MessageInput() {
     setImagePreview(null);
 
     if (fileInputRef.current) fileInputRef.current.value = "";
+
+    // stop typing after send
+    if (socket && selectedUser) {
+      socket.emit("stopTyping", { receiverId: selectedUser._id });
+    }
   };
 
+  // ✅ IMAGE HANDLER
   const handleImageChange = (e) => {
     const file = e.target.files[0];
 
@@ -84,7 +109,8 @@ function MessageInput() {
           value={text}
           onChange={(e) => {
             setText(e.target.value);
-            isSoundEnabled && playRandomKeyStrokeSound();
+            handleTyping(); // ✅ trigger typing
+            if (isSoundEnabled) playRandomKeyStrokeSound();
           }}
           className="flex-1 bg-slate-800/50 border border-slate-700/50 rounded-full py-2 px-4 text-sm md:text-base text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-cyan-500"
           placeholder="Type a message..."
