@@ -11,9 +11,15 @@ import { app, server } from "./lib/socket.js";
 const __dirname = path.resolve();
 const PORT = ENV.PORT || 3000;
 
-// FIX: Increased limit to 10mb for image uploads
-app.use(express.json({ limit: "10mb" })); 
-app.use(cors({ origin: ENV.CLIENT_URL, credentials: true }));
+app.use(express.json({ limit: "10mb" }));
+
+app.use(
+  cors({
+    origin: ENV.CLIENT_URL,
+    credentials: true,
+  })
+);
+
 app.use(cookieParser());
 
 app.use("/api/auth", authRoutes);
